@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  studentId    String        @unique
+  email        String        @unique
+  firstName    String
+  middleName   String
+  lastName     String
+  fullName     String?
+  sex          Sex
+  birthdate    DateTime
+  phone        String
+  address      String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  status       StudentStatus @default(PENDING)
+  examSchedule Schedule?
+  credentials  Credential[]
+  hasTakenExam Boolean       @default(false)
+  result       Result?
+}
+
+enum StudentStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+model Credential {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  studentId String  @db.ObjectId
+  student   Student @relation(fields: [studentId], references: [id])
+  fileName  String
+  mimeType  String
+  size      Int
+  url       String
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+model Exam {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  schedule  Schedule[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  form      ExamForm?
+}
+
+model Schedule {
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  examId    String         @db.ObjectId
+  exam      Exam           @relation(fields: [examId], references: [id])
+  date      DateTime
+  duration  Int
+  status    ScheduleStatus @default(PENDING)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  studentId String?        @unique @db.ObjectId
+  student   Student?       @relation(fields: [studentId], references: [id])
+}
+
+enum ScheduleStatus {
+  PENDING
+  ONGOING
+  DONE
+}
+
+model ExamForm {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  examId         String          @unique @db.ObjectId
+  exam           Exam            @relation(fields: [examId], references: [id])
+  title          String
+  questionnaires Questionnaire[]
+}
+
+model Questionnaire {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  examFormId    String   @db.ObjectId
+  examForm      ExamForm @relation(fields: [examFormId], references: [id])
+  question      String
+  choices       String[]
+  answer        String
+  studentAnswer String?
+  number        Int
+  isCorrect     Boolean?
+  resultId      String?  @unique @db.ObjectId
+  result        Result?  @relation(fields: [resultId], references: [id])
+}
+
+model Result {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  studentId      String          @unique @db.ObjectId
+  student        Student         @relation(fields: [studentId], references: [id])
+  questionnaires Questionnaire[]
+  score          Int
+  remarks        String
+}
